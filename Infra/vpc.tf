@@ -17,7 +17,7 @@ resource "aws_subnet" "subnet1" {
 
 resource "aws_security_group" "sg" {
   description = "Security group for EC2"
-  vpc_id = aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     description = "SSH access"
@@ -32,10 +32,19 @@ resource "aws_security_group" "sg" {
   }
 }
 
-resource "aws_cloudwatch_log_group" "vpc_log_group" {
-  name = "/aws/vpc/flowlogs"
+# 🔐 KMS para logs
+resource "aws_kms_key" "log_key" {
+  description = "KMS key for VPC flow logs"
 }
 
+# 📊 CloudWatch corregido
+resource "aws_cloudwatch_log_group" "vpc_log_group" {
+  name              = "/aws/vpc/flowlogs"
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.log_key.arn
+}
+
+# 🔑 IAM role para flow logs
 resource "aws_iam_role" "flow_log_role" {
   name = "flow-log-role"
 
@@ -51,12 +60,17 @@ resource "aws_iam_role" "flow_log_role" {
   })
 }
 
+# 🌐 Flow log con dependencia
 resource "aws_vpc_flow_log" "flow_log" {
-  vpc_id = aws_vpc.main.id
+  vpc_id          = aws_vpc.main.id
   log_destination = aws_cloudwatch_log_group.vpc_log_group.arn
   iam_role_arn    = aws_iam_role.flow_log_role.arn
   traffic_type    = "ALL"
+
+  depends_on = [aws_cloudwatch_log_group.vpc_log_group]
 }
+
+# 🔒 Default SG restringido
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
 

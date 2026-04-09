@@ -3,7 +3,10 @@ resource "aws_instance" "ec2" {
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.subnet1.id
 
-  monitoring = true
+  vpc_security_group_ids = [aws_security_group.sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+
+  monitoring    = true
   ebs_optimized = true
 
   metadata_options {
@@ -18,5 +21,4 @@ resource "aws_instance" "ec2" {
     Name = "AUY1105-app-ec2"
   }
 }
-vpc_security_group_ids = [aws_security_group.sg.id]
-iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+
