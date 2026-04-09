@@ -44,13 +44,3 @@ jobs:
 
       - name: Terraform Validate
         run: terraform -chdir=Infra validate
-
-      #  APPLY
-      - name: Terraform Apply
-        run: terraform -chdir=Infra apply -auto-approve
-
-      #  DESTROY (solo si todo salió bien)
-      - name: Terraform Destroy
-        if: success()
-        run: terraform -chdir=Infra destroy -auto-approve
-        
