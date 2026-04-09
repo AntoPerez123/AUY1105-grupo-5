@@ -1,6 +1,9 @@
 resource "aws_vpc" "main" {
   cidr_block = "10.1.0.0/16"
 
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
   tags = {
     Name = "AUY1105-grupo5-vpc"
   }
@@ -32,7 +35,7 @@ resource "aws_security_group" "sg" {
   }
 }
 
-# 🔐 KMS CORREGIDO
+# KMS CORREGIDO
 resource "aws_kms_key" "log_key" {
   description         = "KMS key for VPC flow logs"
   enable_key_rotation = true
@@ -57,14 +60,14 @@ resource "aws_kms_key" "log_key" {
   })
 }
 
-# 📊 CloudWatch
+# CloudWatch
 resource "aws_cloudwatch_log_group" "vpc_log_group" {
   name              = "/aws/vpc/flowlogs"
   retention_in_days = 365
   kms_key_id        = aws_kms_key.log_key.arn
 }
 
-# 🔑 IAM role flow logs
+#  IAM role flow logs
 resource "aws_iam_role" "flow_log_role" {
   name = "flow-log-role"
 
@@ -80,7 +83,7 @@ resource "aws_iam_role" "flow_log_role" {
   })
 }
 
-# 🌐 FLOW LOG CORRECTO
+#  FLOW LOG CORRECTO (FIX FINAL)
 resource "aws_vpc_flow_log" "flow_log" {
   vpc_id               = aws_vpc.main.id
   log_destination      = aws_cloudwatch_log_group.vpc_log_group.arn
@@ -88,10 +91,15 @@ resource "aws_vpc_flow_log" "flow_log" {
   iam_role_arn         = aws_iam_role.flow_log_role.arn
   traffic_type         = "ALL"
 
-  depends_on = [aws_cloudwatch_log_group.vpc_log_group]
+  log_format = "${version} ${account-id} ${interface-id}"
+
+  depends_on = [
+    aws_cloudwatch_log_group.vpc_log_group,
+    aws_iam_role.flow_log_role
+  ]
 }
 
-# 🔒 Default SG
+#  Default SG
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
 
