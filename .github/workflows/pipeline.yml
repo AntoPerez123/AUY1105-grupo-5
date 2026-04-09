@@ -21,16 +21,16 @@ jobs:
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
 
       - name: Run TFLint
-        run: tflint --chdir=infra
+        run: tflint Infra/
 
       - name: Install Checkov
         run: pip install checkov
 
       - name: Run Checkov
-        run: checkov -d infra/
+        run: checkov -d Infra/
 
       - name: Terraform Init
-        run: terraform -chdir=infra init
+        run: terraform -chdir=Infra init
 
       - name: Terraform Validate
-        run: terraform -chdir=infra validate
+        run: terraform -chdir=Infra validate
