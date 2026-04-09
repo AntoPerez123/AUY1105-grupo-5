@@ -3,7 +3,19 @@ resource "aws_instance" "ec2" {
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.subnet1.id
 
+  monitoring = true
+  ebs_optimized = true
+
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    encrypted = true
+  }
+
   tags = {
     Name = "AUY1105-app-ec2"
   }
 }
+vpc_security_group_ids = [aws_security_group.sg.id]

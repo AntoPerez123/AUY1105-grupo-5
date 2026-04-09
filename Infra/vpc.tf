@@ -16,9 +16,11 @@ resource "aws_subnet" "subnet1" {
 }
 
 resource "aws_security_group" "sg" {
+  description = "Security group for EC2"
   vpc_id = aws_vpc.main.id
 
   ingress {
+    description = "SSH access"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -29,3 +31,4 @@ resource "aws_security_group" "sg" {
     Name = "AUY1105-grupo5-sg"
   }
 }
+
