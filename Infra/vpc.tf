@@ -111,3 +111,11 @@ resource "aws_default_security_group" "default" {
   ingress = []
   egress  = []
 }
+
+resource "aws_flow_log" "vpc_flow_log_alt" {
+  vpc_id               = aws_vpc.main.id
+  log_destination      = aws_cloudwatch_log_group.vpc_log_group.arn
+  log_destination_type = "cloud-watch-logs"
+  iam_role_arn         = aws_iam_role.flow_log_role.arn
+  traffic_type         = "ALL"
+}
