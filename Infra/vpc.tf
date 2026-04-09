@@ -32,19 +32,34 @@ resource "aws_security_group" "sg" {
   }
 }
 
-# KMS para logs
+# KMS CORREGIDO (rotación + policy)
 resource "aws_kms_key" "log_key" {
-  description = "KMS key for VPC flow logs"
+  description         = "KMS key for VPC flow logs"
+  enable_key_rotation = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "*"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      }
+    ]
+  })
 }
 
-# CloudWatch corregido
+# CloudWatch CORREGIDO
 resource "aws_cloudwatch_log_group" "vpc_log_group" {
   name              = "/aws/vpc/flowlogs"
   retention_in_days = 365
   kms_key_id        = aws_kms_key.log_key.arn
 }
 
-#  IAM role para flow logs
+# IAM role para flow logs
 resource "aws_iam_role" "flow_log_role" {
   name = "flow-log-role"
 
@@ -60,17 +75,18 @@ resource "aws_iam_role" "flow_log_role" {
   })
 }
 
-# Flow log con dependencia
+# FLOW LOG CORREGIDO
 resource "aws_vpc_flow_log" "flow_log" {
-  vpc_id          = aws_vpc.main.id
-  log_destination = aws_cloudwatch_log_group.vpc_log_group.arn
-  iam_role_arn    = aws_iam_role.flow_log_role.arn
-  traffic_type    = "ALL"
+  vpc_id               = aws_vpc.main.id
+  log_destination      = aws_cloudwatch_log_group.vpc_log_group.arn
+  log_destination_type = "cloud-watch-logs"
+  iam_role_arn         = aws_iam_role.flow_log_role.arn
+  traffic_type         = "ALL"
 
   depends_on = [aws_cloudwatch_log_group.vpc_log_group]
 }
 
-#  Default SG restringido
+# Default SG restringido
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
 
