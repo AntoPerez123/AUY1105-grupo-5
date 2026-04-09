@@ -87,20 +87,17 @@ resource "aws_iam_role" "flow_log_role" {
   })
 }
 
-# 🌐 FLOW LOG (FIX DEFINITIVO)
-resource "aws_vpc_flow_log" "flow_log" {
+# 🌐 FLOW LOG CORRECTO
+resource "aws_flow_log" "flow_log" {
   vpc_id               = aws_vpc.main.id
   log_destination      = aws_cloudwatch_log_group.vpc_log_group.arn
   log_destination_type = "cloud-watch-logs"
   iam_role_arn         = aws_iam_role.flow_log_role.arn
   traffic_type         = "ALL"
 
-  log_format = "${version} ${account-id} ${interface-id}"
-
   depends_on = [
     aws_cloudwatch_log_group.vpc_log_group,
-    aws_iam_role.flow_log_role,
-    aws_vpc.main
+    aws_iam_role.flow_log_role
   ]
 }
 
