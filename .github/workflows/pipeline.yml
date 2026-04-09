@@ -1,0 +1,72 @@
+name: Pipeline IaC
+
+
+
+on:
+
+ pull_request:
+
+  branches:
+
+   - main
+
+
+
+jobs:
+
+ terraform:
+
+  runs-on: ubuntu-latest
+
+
+
+  steps:
+
+   - name: Checkout
+
+    uses: actions/checkout@v3
+
+
+
+   - name: Setup Terraform
+
+    uses: hashicorp/setup-terraform@v2
+
+
+
+   - name: Install TFLint
+
+    run: |
+
+     curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+
+
+   - name: Run TFLint
+
+    run: tflint infra/
+
+
+
+   - name: Install Checkov
+
+    run: pip install checkov
+
+
+
+   - name: Run Checkov
+
+    run: checkov -d infra/
+
+
+
+   - name: Terraform Init
+
+    run: terraform -chdir=infra init
+
+
+
+   - name: Terraform Validate
+
+    run: terraform -chdir=infra validate
+    
