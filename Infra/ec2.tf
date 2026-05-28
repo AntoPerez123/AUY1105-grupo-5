@@ -1,24 +1,9 @@
-resource "aws_instance" "ec2" {
-  ami           = "ami-0c02fb55956c7d316"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.subnet1.id
+module "computo" {
+  source = "github.com/AntoPerez123/terraform-aws-ec2-AUY1105-antonia?ref=v1.0.0"
 
-  vpc_security_group_ids = [aws_security_group.sg.id]
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
-
-  monitoring    = true
-  ebs_optimized = true
-
-  metadata_options {
-    http_tokens = "required"
-  }
-
-  root_block_device {
-    encrypted = true
-  }
-
-  tags = {
-    Name = "AUY1105-app-ec2"
-  }
+  project_name       = "auy1105-antonia"
+  ami_id             = "ami-0c02fb55956c7d316"
+  instance_type      = "t2.micro"
+  subnet_id          = module.redes.subnet_ids[0]
+  security_group_ids = [module.redes.security_group_id]
 }
-
