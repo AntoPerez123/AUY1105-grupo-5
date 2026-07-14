@@ -4,44 +4,98 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - et-final
+
+permissions:
+  contents: read
 
 jobs:
-  terraform:
+  calidad-seguridad:
+    name: Calidad y seguridad IaC
     runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8.5"
 
-      - name: Install TFLint
+      - name: Verificar formato
+        run: terraform fmt -check -recursive Infra
+
+      - name: Inicializar Terraform
+        run: terraform -chdir=Infra init -backend=false
+
+      - name: Validar Terraform
+        run: terraform -chdir=Infra validate
+
+      - name: Instalar TFLint
         run: |
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
 
-      - name: Run TFLint
+      - name: Ejecutar TFLint
         run: tflint --chdir=Infra
 
-      - name: Install Checkov
+      - name: Instalar Checkov
         run: pip install checkov
 
-      - name: Run Checkov
-        run: checkov -d Infra/ --skip-check CKV_TF_1
+      - name: Ejecutar Checkov
+        run: checkov -d Infra --skip-check CKV_TF_1
 
-      #  NUEVO: OPA
-      - name: Install OPA
+      - name: Generar plan de Terraform
+        run: |
+          terraform -chdir=Infra plan \
+            -input=false \
+            -lock=false \
+            -refresh=false \
+            -out=tfplan \
+            -var="ci_mode=true"
+
+      - name: Convertir plan a JSON
+        run: terraform -chdir=Infra show -json tfplan > Infra/tfplan.json
+
+      - name: Instalar OPA
         run: |
           curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
           chmod +x opa
 
-      - name: Run OPA Policies
+      - name: Evaluar políticas OPA
         run: |
-          ./opa eval --format pretty --data policies "data"
+          EC2_DENIES=$(./opa eval \
+            --format raw \
+            --data policies \
+            --input Infra/tfplan.json \
+            "count(data.policies.ec2.deny)")
 
-      - name: Terraform Init
-        run: terraform -chdir=Infra init
+          SG_DENIES=$(./opa eval \
+            --format raw \
+            --data policies \
+            --input Infra/tfplan.json \
+            "count(data.policies.sg.deny)")
 
-      - name: Terraform Validate
-        run: terraform -chdir=Infra validate
-        
+          echo "Incumplimientos EC2: $EC2_DENIES"
+          echo "Incumplimientos Security Group: $SG_DENIES"
+
+          if [ "$EC2_DENIES" -gt 0 ] || [ "$SG_DENIES" -gt 0 ]; then
+            echo "Se detectaron configuraciones que incumplen las políticas."
+
+            ./opa eval \
+              --format pretty \
+              --data policies \
+              --input Infra/tfplan.json \
+              "data.policies"
+
+            exit 1
+          fi
+
+          echo "Todas las políticas de seguridad fueron aprobadas."

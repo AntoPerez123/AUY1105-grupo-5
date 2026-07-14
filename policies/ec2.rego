@@ -1,7 +1,15 @@
 package policies.ec2
 
-deny[msg] if {
-  input.resource_type == "aws_instance"
-  input.values.instance_type != "t2.micro"
-  msg := "La instancia EC2 debe ser tipo t2.micro"
+import rego.v1
+
+deny contains msg if {
+  some resource in input.resource_changes
+  resource.type == "aws_instance"
+  resource.change.after != null
+  resource.change.after.instance_type != "t2.micro"
+
+  msg := sprintf(
+    "La instancia %s debe utilizar el tipo t2.micro y no %s",
+    [resource.address, resource.change.after.instance_type]
+  )
 }
